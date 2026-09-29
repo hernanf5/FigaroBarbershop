@@ -1,0 +1,15 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: figaro-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: FigaroDB
+    ports:
+      - "3307:3306"
+    volumes:
+      - figaro_mysql_data:/var/lib/mysql
+
+volumes:
+  figaro_mysql_data:
