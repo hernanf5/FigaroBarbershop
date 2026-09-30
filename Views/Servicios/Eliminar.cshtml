@@ -1,0 +1,13 @@
+@model FigaroBarbershop.Models.Servicio
+
+<div class="container">
+    <h1 class="text-2xl font-bold mb-6">Dar de baja servicio</h1>
+
+    <p>¿Confirmás que querés dar de baja el servicio <strong>@Model.Nombre</strong>?</p>
+    <p class="text-sm text-gray-500">No se elimina físicamente: queda inactivo y deja de aparecer en los listados y en la reserva de turnos.</p>
+
+    <form asp-action="Eliminar" asp-route-id="@Model.IdServicio" method="post">
+        <button type="submit" class="btn-danger">Confirmar baja</button>
+        <a asp-action="Index" class="btn-outline">Cancelar</a>
+    </form>
+</div>

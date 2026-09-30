@@ -10,8 +10,8 @@ namespace FigaroBarbershop.Models
         {
             using var connection = new MySqlConnection(connectionString);
             var sql = $@"INSERT INTO Producto ({nameof(Producto.Nombre)}, {nameof(Producto.Precio)}, {nameof(Producto.ImagenUrl)}, {nameof(Producto.Activo)})
-                         VALUES (@{nameof(Producto.Nombre)}, @{nameof(Producto.Precio)}, @{nameof(Producto.ImagenUrl)}, 1);
-                         SELECT LAST_INSERT_ID();";
+                        VALUES (@{nameof(Producto.Nombre)}, @{nameof(Producto.Precio)}, @{nameof(Producto.ImagenUrl)}, 1);
+                        SELECT LAST_INSERT_ID();";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@" + nameof(Producto.Nombre), p.Nombre);
             command.Parameters.AddWithValue("@" + nameof(Producto.Precio), p.Precio);

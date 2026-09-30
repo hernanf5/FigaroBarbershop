@@ -1,0 +1,91 @@
+@model IList<FigaroBarbershop.Models.Producto>
+
+<div class="max-w-5xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Productos</h1>
+        <a asp-action="Create" class="bg-gray-900 text-white text-sm px-4 py-2 rounded hover:bg-gray-700">Nuevo producto</a>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="bg-green-50 text-green-700 border border-green-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-50 text-red-700 border border-red-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Error"]</div>
+    }
+
+    @{
+        bool? filtro = ViewBag.FiltroActivo;
+    }
+    <div class="flex gap-2 mb-4 text-sm">
+        <a asp-action="Index" asp-route-activo="true"
+            class="px-3 py-1 rounded border @(filtro == true ? "bg-gray-900 text-white" : "bg-white text-gray-600")">Activos</a>
+        <a asp-action="Index" asp-route-activo="false"
+            class="px-3 py-1 rounded border @(filtro == false ? "bg-gray-900 text-white" : "bg-white text-gray-600")">Inactivos</a>
+        <a asp-action="Index" asp-route-activo=""
+            class="px-3 py-1 rounded border @(filtro == null ? "bg-gray-900 text-white" : "bg-white text-gray-600")">Todos</a>
+    </div>
+
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="text-left text-gray-500 border-b">
+                <th class="py-2">Imagen</th>
+                <th class="py-2">Nombre</th>
+                <th class="py-2">Precio</th>
+                <th class="py-2">Estado</th>
+                <th class="py-2"></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in Model)
+        {
+            <tr class="border-b">
+                <td class="py-2">
+                    @if (!string.IsNullOrEmpty(p.ImagenUrl))
+                    {
+                        <img src="@p.ImagenUrl" class="w-12 h-12 object-cover rounded" />
+                    }
+                </td>
+                <td class="py-2">@p.Nombre</td>
+                <td class="py-2">$@p.Precio.ToString("N2")</td>
+                <td class="py-2">
+                    @if (p.Activo)
+                    {
+                        <span class="text-green-600 text-xs font-medium">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="text-gray-400 text-xs font-medium">Inactivo</span>
+                    }
+                </td>
+                <td class="py-2 text-right space-x-2">
+                    <a asp-action="Edit" asp-route-id="@p.IdProducto" class="text-blue-600 hover:underline">Editar</a>
+                    @if (p.Activo)
+                    {
+                        <a asp-action="Eliminar" asp-route-id="@p.IdProducto" class="text-red-600 hover:underline">Dar de baja</a>
+                    }
+                    else
+                    {
+                        <form asp-action="Reactivar" asp-route-id="@p.IdProducto" method="post" class="inline">
+                            <button type="submit" class="text-green-600 hover:underline">Reactivar</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @{
+        int paginaActual = ViewBag.PaginaActual;
+        int totalPaginas = ViewBag.TotalPaginas;
+    }
+    <div class="flex gap-2 mt-4 text-sm">
+        @for (int p = 1; p <= totalPaginas; p++)
+        {
+            <a asp-action="Index" asp-route-pagina="@p" asp-route-activo="@filtro"
+                class="px-3 py-1 rounded border @(p == paginaActual ? "bg-gray-900 text-white" : "bg-white text-gray-600")">@p</a>
+        }
+    </div>
+</div>

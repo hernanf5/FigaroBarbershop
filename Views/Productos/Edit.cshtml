@@ -1,0 +1,42 @@
+@model FigaroBarbershop.Models.Producto
+
+<div class="max-w-lg mx-auto px-6 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Editar producto</h1>
+
+    @if (!string.IsNullOrEmpty(Model.ImagenUrl))
+    {
+        <img src="@Model.ImagenUrl" class="w-24 h-24 object-cover rounded mb-4" />
+    }
+
+    <form asp-action="Edit" asp-route-id="@Model.IdProducto" method="post" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" asp-for="IdProducto" />
+        <input type="hidden" asp-for="ImagenUrl" />
+        <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm"></div>
+
+        <div>
+            <label asp-for="Nombre" class="block text-sm text-gray-600 mb-1"></label>
+            <input asp-for="Nombre" class="w-full border rounded px-3 py-2" />
+            <span asp-validation-for="Nombre" class="text-red-500 text-xs"></span>
+        </div>
+
+        <div>
+            <label asp-for="Precio" class="block text-sm text-gray-600 mb-1"></label>
+            <input asp-for="Precio" type="number" step="0.01" class="w-full border rounded px-3 py-2" />
+            <span asp-validation-for="Precio" class="text-red-500 text-xs"></span>
+        </div>
+
+        <div>
+            <label asp-for="ImagenFile" class="block text-sm text-gray-600 mb-1">Reemplazar imagen (opcional)</label>
+            <input asp-for="ImagenFile" type="file" accept="image/*" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div class="flex gap-2 pt-2">
+            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-700">Guardar cambios</button>
+            <a asp-action="Index" class="border px-4 py-2 rounded text-gray-600 hover:bg-gray-50">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

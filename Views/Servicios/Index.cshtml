@@ -1,0 +1,53 @@
+@model IList<FigaroBarbershop.Models.Servicio>
+
+<div class="container">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Servicios</h1>
+        <a asp-action="Create" class="btn-primary">Nuevo servicio</a>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-error">@TempData["Error"]</div>
+    }
+
+    <table class="w-full">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Duración</th>
+                <th>Precio</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.Nombre</td>
+                <td>@s.DuracionMinutos min</td>
+                <td>$@s.Precio.ToString("N2")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@s.IdServicio">Editar</a>
+                    <a asp-action="Eliminar" asp-route-id="@s.IdServicio">Eliminar</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @{
+        int paginaActual = ViewBag.PaginaActual;
+        int totalPaginas = ViewBag.TotalPaginas;
+    }
+    <div class="pagination">
+        @for (int p = 1; p <= totalPaginas; p++)
+        {
+            <a asp-action="Index" asp-route-pagina="@p" class="@(p == paginaActual ? "active" : "")">@p</a>
+        }
+    </div>
+</div>

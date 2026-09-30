@@ -1,0 +1,13 @@
+@model FigaroBarbershop.Models.Producto
+
+<div class="max-w-lg mx-auto px-6 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Dar de baja producto</h1>
+
+    <p class="text-gray-700">¿Confirmás que querés dar de baja <strong>@Model.Nombre</strong>?</p>
+    <p class="text-sm text-gray-500 mb-4">No se elimina: queda inactivo y podés reactivarlo después desde el listado.</p>
+
+    <form asp-action="Eliminar" asp-route-id="@Model.IdProducto" method="post" class="flex gap-2">
+        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Confirmar baja</button>
+        <a asp-action="Index" class="border px-4 py-2 rounded text-gray-600 hover:bg-gray-50">Cancelar</a>
+    </form>
+</div>
