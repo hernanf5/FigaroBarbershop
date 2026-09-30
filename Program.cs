@@ -1,8 +1,11 @@
+using FigaroBarbershop.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddScoped<IRepositorioProducto, RepositorioProducto>();
+builder.Services.AddScoped<IRepositorioServicio, RepositorioServicio>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
