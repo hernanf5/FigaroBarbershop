@@ -1,11 +1,14 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FigaroBarbershop.Models;
 
 namespace FigaroBarbershop.Controllers;
 
 public class HomeController : Controller
 {
+    [Authorize]
+    public IActionResult Restringido() => View();
     public IActionResult Index()
     {
         return View();

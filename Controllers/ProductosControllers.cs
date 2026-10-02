@@ -16,7 +16,6 @@ namespace FigaroBarbershop.Controllers
             this.env = env;
         }
 
-        // mostrarInactivos: null = todos, true = solo activos, false = solo inactivos
         public IActionResult Index(int pagina = 1, bool? activo = true)
         {
             try
