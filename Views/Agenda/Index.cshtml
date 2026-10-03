@@ -1,0 +1,105 @@
+@model IList<FigaroBarbershop.Models.Agenda>
+@using FigaroBarbershop.Models
+
+@{
+    DateTime inicioSemana = ViewBag.InicioSemana;
+    int idUsuario = ViewBag.IdUsuario;
+    bool esAdmin = ViewBag.EsAdmin;
+
+    var dias = Enumerable.Range(0, 6).Select(i => inicioSemana.AddDays(i)).ToList(); // Lunes a Sábado
+    var porDia = dias.ToDictionary(d => d, d => Model.Where(a => a.Fecha.Date == d.Date).OrderBy(a => a.HoraInicio).ToList());
+}
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Agenda</h1>
+
+        @if (esAdmin)
+        {
+            <form method="get" class="flex items-center gap-2">
+                <select name="idUsuario" onchange="this.form.submit()" class="border rounded px-3 py-1 text-sm">
+                    @foreach (var b in (IEnumerable<Usuario>)ViewBag.Barberos)
+                    {
+                        <option value="@b.IdUsuario" selected="@(b.IdUsuario == idUsuario)">@b.Nombre @b.Apellido</option>
+                    }
+                </select>
+            </form>
+        }
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="bg-green-50 text-green-700 border border-green-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-50 text-red-700 border border-red-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Error"]</div>
+    }
+
+    <div class="flex justify-between items-center mb-4">
+        <div class="flex gap-2">
+            <a asp-action="Index" asp-route-idUsuario="@idUsuario" asp-route-semana="@inicioSemana.AddDays(-7).ToString("yyyy-MM-dd")"
+                class="px-3 py-1 rounded border text-sm text-gray-600 hover:bg-gray-50">← Semana anterior</a>
+            <a asp-action="Index" asp-route-idUsuario="@idUsuario" asp-route-semana="@inicioSemana.AddDays(7).ToString("yyyy-MM-dd")"
+                class="px-3 py-1 rounded border text-sm text-gray-600 hover:bg-gray-50">Semana siguiente →</a>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <form asp-action="Generar" method="post">
+                <input type="hidden" name="idUsuario" value="@idUsuario" />
+                <input type="hidden" name="semanas" value="4" />
+                <button type="submit" class="bg-gray-900 text-white text-sm px-4 py-2 rounded hover:bg-gray-700">
+                    Generar agenda (próximas 4 semanas)
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <p class="text-gray-500 text-sm">No hay franjas generadas todavía para esta semana.</p>
+    }
+    else
+    {
+        <div class="grid grid-cols-6 gap-2">
+            @foreach (var dia in dias)
+            {
+                <div>
+                    <div class="text-center text-xs font-semibold text-gray-500 uppercase mb-2">
+                        @dia.ToString("ddd dd/MM", new System.Globalization.CultureInfo("es-AR"))
+                    </div>
+                    <div class="space-y-1">
+                        @foreach (var slot in porDia[dia])
+                        {
+                            string colorClase = slot.Estado switch
+                            {
+                                "Disponible" => "bg-green-50 border-green-200 text-green-700",
+                                "No disponible" => "bg-gray-100 border-gray-200 text-gray-400",
+                                "Reservado" => "bg-amber-50 border-amber-200 text-amber-700",
+                                _ => "bg-white border-gray-200"
+                            };
+                            <div class="border rounded px-2 py-1 text-xs flex items-center justify-between @colorClase">
+                                <span>@slot.HoraInicio.ToString(@"hh\:mm")</span>
+                                @if (slot.Estado != "Reservado")
+                                {
+                                    <form asp-action="CambiarEstado" method="post" class="inline">
+                                        <input type="hidden" name="idAgenda" value="@slot.IdAgenda" />
+                                        <input type="hidden" name="nuevoEstado" value="@(slot.Estado == "Disponible" ? "No disponible" : "Disponible")" />
+                                        <button type="submit" class="underline hover:no-underline">
+                                            @(slot.Estado == "Disponible" ? "Bloquear" : "Habilitar")
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="italic">reservado</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using FigaroBarbershop.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FigaroBarbershop.Controllers
 {
+    [Authorize]
     public class ProductosController : Controller
     {
         private readonly IRepositorioProducto repositorio;

@@ -8,6 +8,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IRepositorioProducto, RepositorioProducto>();
 builder.Services.AddScoped<IRepositorioServicio, RepositorioServicio>();
 builder.Services.AddScoped<IRepositorioUsuario, RepositorioUsuario>();
+builder.Services.AddScoped<IRepositorioAgenda, RepositorioAgenda>();
 builder.Services.AddScoped<ServicioHash>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

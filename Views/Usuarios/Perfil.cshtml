@@ -1,0 +1,58 @@
+@model FigaroBarbershop.Models.Usuario
+
+<div class="max-w-lg mx-auto px-6 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Mi perfil</h1>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="bg-green-50 text-green-700 border border-green-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-50 text-red-700 border border-red-200 rounded px-4 py-2 mb-4 text-sm">@TempData["Error"]</div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+    {
+        <img src="@Model.AvatarUrl" class="w-20 h-20 rounded-full object-cover mb-4" />
+    }
+
+    <form asp-action="Perfil" method="post" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" asp-for="IdUsuario" />
+        <input type="hidden" asp-for="Rol" />
+
+        <div>
+            <label asp-for="Nombre" class="block text-sm text-gray-600 mb-1"></label>
+            <input asp-for="Nombre" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+            <label asp-for="Apellido" class="block text-sm text-gray-600 mb-1"></label>
+            <input asp-for="Apellido" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+            <label asp-for="Email" class="block text-sm text-gray-600 mb-1"></label>
+            <input asp-for="Email" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+            <label asp-for="AvatarFile" class="block text-sm text-gray-600 mb-1">Avatar</label>
+            <input asp-for="AvatarFile" type="file" accept="image/*" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-700">Guardar cambios</button>
+    </form>
+
+    <hr class="my-6" />
+
+    <h2 class="text-lg font-semibold text-gray-800 mb-3">Cambiar contraseña</h2>
+    <form asp-action="CambiarClave" method="post" class="space-y-4">
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Contraseña actual</label>
+            <input name="claveActual" type="password" class="w-full border rounded px-3 py-2" required />
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Contraseña nueva</label>
+            <input name="claveNueva" type="password" class="w-full border rounded px-3 py-2" required />
+        </div>
+        <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-700">Actualizar contraseña</button>
+    </form>
+</div>

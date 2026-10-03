@@ -61,3 +61,18 @@ CREATE TABLE Usuario (
 INSERT INTO Usuario (Nombre, Apellido, Email, Clave, Rol) VALUES
     ('Hernán', 'Funes', 'admin@figaro.com', 'vuGuAj9hr0a4ldXxIJmNr7Ygd+Mw2V0dH+HkPIhHqTY=', 'Administrador'),
     ('Juan', 'Pérez', 'barbero@figaro.com', 'c3B7uDbeJ1WWyrvOdJ8BogtsORlbggM5oInjqIXkgwc=', 'Barbero');
+
+
+-- Tabla: Agenda
+
+CREATE TABLE Agenda (
+    IdAgenda    INT AUTO_INCREMENT PRIMARY KEY,
+    IdUsuario   INT NOT NULL,
+    Fecha       DATE NOT NULL,
+    HoraInicio  TIME NOT NULL,
+    HoraFin     TIME NOT NULL,
+    Estado      VARCHAR(20) NOT NULL DEFAULT 'Disponible',
+    CONSTRAINT CK_Agenda_Estado CHECK (Estado IN ('Disponible', 'No disponible', 'Reservado')),
+    CONSTRAINT FK_Agenda_Usuario FOREIGN KEY (IdUsuario) REFERENCES Usuario(IdUsuario),
+    CONSTRAINT UQ_Agenda_Slot UNIQUE (IdUsuario, Fecha, HoraInicio)
+) ENGINE=InnoDB;
