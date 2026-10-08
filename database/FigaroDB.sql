@@ -76,3 +76,12 @@ CREATE TABLE Agenda (
     CONSTRAINT FK_Agenda_Usuario FOREIGN KEY (IdUsuario) REFERENCES Usuario(IdUsuario),
     CONSTRAINT UQ_Agenda_Slot UNIQUE (IdUsuario, Fecha, HoraInicio)
 ) ENGINE=InnoDB;
+
+-- Tabla: Cliente
+CREATE TABLE Cliente (
+    IdCliente  INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre     VARCHAR(100) NOT NULL,
+    Apellido   VARCHAR(100) NOT NULL,
+    Email      VARCHAR(150) NOT NULL UNIQUE,
+    Telefono   VARCHAR(30)  NOT NULL
+) ENGINE=InnoDB;
