@@ -4,5 +4,6 @@ namespace FigaroBarbershop.Models
     {
         Usuario? ObtenerPorEmail(string email);
         int CambiarClave(int idUsuario, string nuevaClave);
+        IList<Usuario> ObtenerPorRol(string rol);
     }
 }

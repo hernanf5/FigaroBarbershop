@@ -15,8 +15,8 @@ namespace FigaroBarbershop.Models
         {
             using var connection = new MySqlConnection(connectionString);
             var sql = $@"INSERT INTO Usuario ({nameof(Usuario.Nombre)}, {nameof(Usuario.Apellido)}, {nameof(Usuario.Email)}, Clave, {nameof(Usuario.Rol)}, {nameof(Usuario.AvatarUrl)}, {nameof(Usuario.Activo)})
-                         VALUES (@{nameof(Usuario.Nombre)}, @{nameof(Usuario.Apellido)}, @{nameof(Usuario.Email)}, @Clave, @{nameof(Usuario.Rol)}, @{nameof(Usuario.AvatarUrl)}, 1);
-                         SELECT LAST_INSERT_ID();";
+                        VALUES (@{nameof(Usuario.Nombre)}, @{nameof(Usuario.Apellido)}, @{nameof(Usuario.Email)}, @Clave, @{nameof(Usuario.Rol)}, @{nameof(Usuario.AvatarUrl)}, 1);
+                        SELECT LAST_INSERT_ID();";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@" + nameof(Usuario.Nombre), u.Nombre);
             command.Parameters.AddWithValue("@" + nameof(Usuario.Apellido), u.Apellido);
@@ -50,7 +50,7 @@ namespace FigaroBarbershop.Models
                             {nameof(Usuario.Apellido)} = @{nameof(Usuario.Apellido)},
                             {nameof(Usuario.Email)} = @{nameof(Usuario.Email)},
                             {nameof(Usuario.AvatarUrl)} = @{nameof(Usuario.AvatarUrl)}
-                         WHERE {nameof(Usuario.IdUsuario)} = @{nameof(Usuario.IdUsuario)}";
+                        WHERE {nameof(Usuario.IdUsuario)} = @{nameof(Usuario.IdUsuario)}";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@" + nameof(Usuario.Nombre), u.Nombre);
             command.Parameters.AddWithValue("@" + nameof(Usuario.Apellido), u.Apellido);
@@ -148,6 +148,25 @@ namespace FigaroBarbershop.Models
                 AvatarUrl = reader.IsDBNull(reader.GetOrdinal(nameof(Usuario.AvatarUrl))) ? null : reader.GetString(nameof(Usuario.AvatarUrl)),
                 Activo = reader.GetBoolean(nameof(Usuario.Activo)),
             };
+        }
+        
+        public IList<Usuario> ObtenerPorRol(string rol)
+        {
+            var lista = new List<Usuario>();
+            using var connection = new MySqlConnection(connectionString);
+            var sql = $@"SELECT * FROM Usuario
+                        WHERE {nameof(Usuario.Rol)} = @rol AND {nameof(Usuario.Activo)} = 1
+                        ORDER BY {nameof(Usuario.Apellido)}, {nameof(Usuario.Nombre)}";
+            using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@rol", rol);
+
+            connection.Open();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                lista.Add(MapearUsuario(reader));
+            }
+            return lista;
         }
     }
 }
