@@ -85,3 +85,20 @@ CREATE TABLE Cliente (
     Email      VARCHAR(150) NOT NULL UNIQUE,
     Telefono   VARCHAR(30)  NOT NULL
 ) ENGINE=InnoDB;
+
+-- Tabla: Turno
+CREATE TABLE Turno (
+    IdTurno         INT AUTO_INCREMENT PRIMARY KEY,
+    IdAgenda        INT NOT NULL,
+    IdCliente       INT NOT NULL,
+    IdServicio      INT NOT NULL,
+    CantidadSlots   INT NOT NULL,
+    PrecioServicio  DECIMAL(12,2) NOT NULL,
+    Sena            DECIMAL(12,2) NOT NULL,
+    Estado          VARCHAR(20) NOT NULL DEFAULT 'Confirmado',
+    FechaCreacion   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT CK_Turno_Estado CHECK (Estado IN ('Confirmado', 'Finalizado', 'Cancelado', 'No se presentó')),
+    CONSTRAINT FK_Turno_Agenda FOREIGN KEY (IdAgenda) REFERENCES Agenda(IdAgenda),
+    CONSTRAINT FK_Turno_Cliente FOREIGN KEY (IdCliente) REFERENCES Cliente(IdCliente),
+    CONSTRAINT FK_Turno_Servicio FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
+) ENGINE=InnoDB;
