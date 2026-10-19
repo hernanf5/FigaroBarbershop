@@ -36,7 +36,7 @@ namespace FigaroBarbershop.Controllers
         [HttpGet]
         public IActionResult Servicios()
             => Json(repoServicio.ObtenerLista(1, 100)
-                .Select(s => new { s.IdServicio, s.Nombre, s.DuracionMinutos, s.Precio }));
+                .Select(s => new { s.IdServicio, s.Nombre, s.DuracionMinutos, s.Precio, sena = ConfigTurnos.CalcularSena(s.Precio) }));
 
 
         [HttpGet]

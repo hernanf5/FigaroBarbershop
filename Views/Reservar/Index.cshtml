@@ -1,0 +1,39 @@
+@{
+    Layout = "_LayoutPublico";
+    ViewData["Title"] = "Reservar turno";
+}
+
+<div class="modal-backdrop open" style="position:static; min-height:100vh; padding:100px 0 40px; opacity:1; backdrop-filter:none;">
+    <div class="modal" style="transform:none; max-height:none;">
+        <aside class="modal-sidebar">
+            <div class="modal-sidebar-logo"><span>F</span>igaro</div>
+
+            <div id="step-1" class="modal-step active"><div class="modal-step-num">1</div><div class="modal-step-label">Barbero</div></div>
+            <div class="modal-step-connector"></div>
+            <div id="step-2" class="modal-step"><div class="modal-step-num">2</div><div class="modal-step-label">Servicio</div></div>
+            <div class="modal-step-connector"></div>
+            <div id="step-3" class="modal-step"><div class="modal-step-num">3</div><div class="modal-step-label">Horario</div></div>
+            <div class="modal-step-connector"></div>
+            <div id="step-4" class="modal-step"><div class="modal-step-num">4</div><div class="modal-step-label">Contacto</div></div>
+
+            <div class="modal-summary" id="modal-summary"></div>
+        </aside>
+
+        <div class="modal-main">
+            <div class="modal-header"><h2 id="modal-title"></h2></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div id="modal-error" style="color:#e07a6a; font-size:13px; padding:0 40px 12px; display:none;"></div>
+            <div class="modal-footer">
+                <span class="modal-footer-hint" id="modal-hint"></span>
+                <div style="display:flex; gap:12px;">
+                    <button type="button" class="btn-outline" id="btn-back">Atrás</button>
+                    <button type="button" class="btn-primary" id="btn-next">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/reservar.js" asp-append-version="true"></script>
+}
