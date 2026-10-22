@@ -18,14 +18,14 @@ namespace FigaroBarbershop.Models
                 var slots = new List<(int Id, TimeSpan Inicio, TimeSpan Fin, string Estado)>();
 
                 var sqlSlots = $@"SELECT a.{nameof(Agenda.IdAgenda)}, a.{nameof(Agenda.HoraInicio)}, a.{nameof(Agenda.HoraFin)}, a.{nameof(Agenda.Estado)}
-                                  FROM Agenda a
-                                  JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
-                                  WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
-                                    AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
-                                    AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
-                                  ORDER BY a.{nameof(Agenda.HoraInicio)}
-                                  LIMIT @Cantidad
-                                  FOR UPDATE";
+                                FROM Agenda a
+                                JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
+                                WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
+                                AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
+                                AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
+                                ORDER BY a.{nameof(Agenda.HoraInicio)}
+                                LIMIT @Cantidad
+                                FOR UPDATE";
                 using (var cmd = new MySqlCommand(sqlSlots, connection, tx))
                 {
                     cmd.Parameters.AddWithValue("@IdAgenda", t.IdAgenda);
@@ -148,6 +148,109 @@ namespace FigaroBarbershop.Models
                 tx.Rollback();
                 throw;
             }
+        }
+
+        private const string SelectListado = @"
+            SELECT t.IdTurno, t.CantidadSlots, t.PrecioServicio, t.Sena, t.Estado, t.FechaCreacion,
+                a.Fecha, a.HoraInicio, a.IdUsuario AS IdBarbero,
+                CONCAT(u.Nombre, ' ', u.Apellido) AS Barbero,
+                c.IdCliente, CONCAT(c.Nombre, ' ', c.Apellido) AS Cliente, c.Email, c.Telefono,
+                s.Nombre AS Servicio
+            FROM Turno t
+            JOIN Agenda a ON a.IdAgenda = t.IdAgenda
+            JOIN Usuario u ON u.IdUsuario = a.IdUsuario
+            JOIN Cliente c ON c.IdCliente = t.IdCliente
+            JOIN Servicio s ON s.IdServicio = t.IdServicio";
+
+        private static string AplicarFiltro(TurnoFiltro f, MySqlCommand cmd)
+        {
+            var where = " WHERE 1=1";
+            if (!string.IsNullOrWhiteSpace(f.Estado))
+            {
+                where += " AND t.Estado = @Estado";
+                cmd.Parameters.AddWithValue("@Estado", f.Estado);
+            }
+            if (f.IdBarbero.HasValue)
+            {
+                where += " AND a.IdUsuario = @IdBarbero";
+                cmd.Parameters.AddWithValue("@IdBarbero", f.IdBarbero.Value);
+            }
+            if (f.Desde.HasValue)
+            {
+                where += " AND a.Fecha >= @Desde";
+                cmd.Parameters.AddWithValue("@Desde", f.Desde.Value.Date);
+            }
+            if (f.Hasta.HasValue)
+            {
+                where += " AND a.Fecha <= @Hasta";
+                cmd.Parameters.AddWithValue("@Hasta", f.Hasta.Value.Date);
+            }
+            if (!string.IsNullOrWhiteSpace(f.Q))
+            {
+                where += @" AND (c.Nombre LIKE @Q OR c.Apellido LIKE @Q OR c.Email LIKE @Q
+                                OR CONCAT(c.Nombre, ' ', c.Apellido) LIKE @Q)";
+                cmd.Parameters.AddWithValue("@Q", $"%{f.Q.Trim()}%");
+            }
+            return where;
+        }
+
+        private static TurnoListado Mapear(MySqlDataReader r)
+        {
+            int O(string n) => r.GetOrdinal(n);
+            return new TurnoListado
+            {
+                IdTurno = r.GetInt32(O("IdTurno")),
+                Fecha = r.GetDateTime(O("Fecha")),
+                HoraInicio = r.GetTimeSpan(O("HoraInicio")),
+                IdBarbero = r.GetInt32(O("IdBarbero")),
+                Barbero = r.GetString(O("Barbero")),
+                IdCliente = r.GetInt32(O("IdCliente")),
+                Cliente = r.GetString(O("Cliente")),
+                Email = r.GetString(O("Email")),
+                Telefono = r.GetString(O("Telefono")),
+                Servicio = r.GetString(O("Servicio")),
+                CantidadSlots = r.GetInt32(O("CantidadSlots")),
+                PrecioServicio = r.GetDecimal(O("PrecioServicio")),
+                Sena = r.GetDecimal(O("Sena")),
+                Estado = r.GetString(O("Estado")),
+                FechaCreacion = r.GetDateTime(O("FechaCreacion"))
+            };
+        }
+
+        public List<TurnoListado> ObtenerLista(TurnoFiltro filtro, int pagina = 1, int tamPagina = 10)
+        {
+            var lista = new List<TurnoListado>();
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using var cmd = new MySqlCommand { Connection = connection };
+            cmd.CommandText = SelectListado + AplicarFiltro(filtro, cmd) +
+                " ORDER BY a.Fecha DESC, a.HoraInicio DESC LIMIT @Tam OFFSET @Off";
+            cmd.Parameters.AddWithValue("@Tam", tamPagina);
+            cmd.Parameters.AddWithValue("@Off", (pagina - 1) * tamPagina);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) lista.Add(Mapear(reader));
+            return lista;
+        }
+
+        public int ObtenerCantidad(TurnoFiltro filtro)
+        {
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using var cmd = new MySqlCommand { Connection = connection };
+            cmd.CommandText = @"SELECT COUNT(*) FROM Turno t
+                JOIN Agenda a ON a.IdAgenda = t.IdAgenda
+                JOIN Cliente c ON c.IdCliente = t.IdCliente" + AplicarFiltro(filtro, cmd);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        public TurnoListado? ObtenerDetalle(int idTurno)
+        {
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using var cmd = new MySqlCommand(SelectListado + " WHERE t.IdTurno = @Id", connection);
+            cmd.Parameters.AddWithValue("@Id", idTurno);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? Mapear(reader) : null;
         }
     }
 }

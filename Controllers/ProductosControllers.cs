@@ -99,6 +99,7 @@ namespace FigaroBarbershop.Controllers
             }
         }
 
+        [Authorize(Policy = "Administrador")]
         public IActionResult Eliminar(int id)
         {
             var producto = repositorio.ObtenerPorId(id);
@@ -108,6 +109,7 @@ namespace FigaroBarbershop.Controllers
 
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Administrador")]
         public IActionResult EliminarConfirmado(int id)
         {
             try
@@ -127,6 +129,7 @@ namespace FigaroBarbershop.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "Administrador")]
         public IActionResult Reactivar(int id)
         {
             try
