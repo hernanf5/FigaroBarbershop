@@ -17,6 +17,7 @@ builder.Services.AddScoped<IRepositorioCliente, RepositorioCliente>();
 builder.Services.AddScoped<IRepositorioTurno, RepositorioTurno>();
 builder.Services.AddScoped<ServicioHash>();
 builder.Services.AddScoped<ServicioJwt>();
+builder.Services.AddScoped<ServicioDisponibilidad>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

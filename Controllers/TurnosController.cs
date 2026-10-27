@@ -25,6 +25,8 @@ namespace FigaroBarbershop.Controllers
 
             ViewBag.Token = servicioJwt.Generar(usuario).Token;
             ViewBag.EsAdmin = User.IsInRole("Administrador");
+            ViewBag.IdUsuario = usuario.IdUsuario;
+            ViewBag.NombreUsuario = $"{usuario.Nombre} {usuario.Apellido}";
             return View();
         }
     }

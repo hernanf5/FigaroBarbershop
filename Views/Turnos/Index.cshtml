@@ -1,0 +1,184 @@
+@{
+    ViewData["Title"] = "Turnos";
+}
+
+<div id="app" class="max-w-6xl mx-auto p-6">
+    <h1 class="text-2xl font-semibold mb-6">Turnos</h1>
+
+    <div class="mb-4">
+        <button v-on:click="abrirNuevo" class="px-4 py-2 bg-black text-white rounded">+ Nuevo turno</button>
+    </div>
+
+    <div v-if="nuevo.abierto" class="mb-6 border rounded p-4 space-y-4">
+        <h2 class="text-lg font-semibold">Nuevo turno</h2>
+        <div v-if="errorForm" class="p-3 bg-red-100 text-red-800 rounded">{{ errorForm }}</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="relative md:col-span-2">
+                <label class="block text-xs mb-1">Email del cliente</label>
+                <input v-model="nuevo.email" v-on:input="buscarClientes" type="email"
+                       placeholder="Escribí el email o el nombre para buscar..." class="border rounded px-3 py-2 w-full" />
+                <ul v-if="clientesSug.length" class="absolute z-10 bg-white text-black border rounded w-full mt-1 shadow">
+                    <li v-for="c in clientesSug" v-bind:key="c.idCliente" v-on:click="elegirCliente(c)"
+                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer">
+                        {{ c.nombre }} {{ c.apellido }} · {{ c.email }}
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <label class="block text-xs mb-1">Nombre</label>
+                <input v-model="nuevo.nombre" class="border rounded px-3 py-2 w-full" />
+            </div>
+            <div>
+                <label class="block text-xs mb-1">Apellido</label>
+                <input v-model="nuevo.apellido" class="border rounded px-3 py-2 w-full" />
+            </div>
+            <div>
+                <label class="block text-xs mb-1">Teléfono</label>
+                <input v-model="nuevo.telefono" type="tel" class="border rounded px-3 py-2 w-full" />
+            </div>
+
+            <div v-if="esAdmin" class="relative">
+                <label class="block text-xs mb-1">Barbero</label>
+                <input v-model="nuevo.barberoNombre" v-on:input="buscarBarberosForm" placeholder="Buscar barbero..."
+                       class="border rounded px-3 py-2 w-full" />
+                <ul v-if="barberosForm.length" class="absolute z-10 bg-white text-black border rounded w-full mt-1 shadow">
+                    <li v-for="b in barberosForm" v-bind:key="b.idUsuario" v-on:click="elegirBarberoForm(b)"
+                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer">{{ b.nombre }}</li>
+                </ul>
+            </div>
+            <div v-else>
+                <label class="block text-xs mb-1">Barbero</label>
+                <input v-bind:value="nuevo.barberoNombre" disabled class="border rounded px-3 py-2 w-full bg-gray-100 text-gray-600" />
+            </div>
+
+            <div>
+                <label class="block text-xs mb-1">Servicio</label>
+                <select v-model="nuevo.idServicio" class="border rounded px-3 py-2 w-full">
+                    <option value="">Elegí un servicio</option>
+                    <option v-for="s in servicios" v-bind:key="s.idServicio" v-bind:value="s.idServicio">
+                        {{ s.nombre }} · {{ s.duracionMinutos }} min · {{ dinero(s.precio) }}
+                    </option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs mb-1">Fecha</label>
+                <input v-model="nuevo.fecha" v-bind:min="hoy" type="date" class="border rounded px-3 py-2 w-full" />
+            </div>
+        </div>
+
+        <div v-if="nuevo.idBarbero && nuevo.idServicio && nuevo.fecha">
+            <label class="block text-xs mb-1">Horario</label>
+            <p v-if="horarios === null" class="text-sm text-gray-500">Buscando horarios...</p>
+            <p v-else-if="!horarios.length" class="text-sm text-gray-500">No hay horarios disponibles ese día.</p>
+            <div v-else class="flex flex-wrap gap-2">
+                <button v-for="h in horarios" v-bind:key="h.idAgenda" type="button" v-on:click="nuevo.idAgenda = h.idAgenda"
+                        class="px-3 py-1 border rounded"
+                        v-bind:class="nuevo.idAgenda === h.idAgenda ? 'bg-black text-white' : ''">{{ h.hora }}</button>
+            </div>
+        </div>
+
+        <div class="space-x-2">
+            <button v-on:click="guardar" v-bind:disabled="guardando || !puedeGuardar"
+                    class="px-4 py-2 bg-black text-white rounded disabled:opacity-40">Crear turno</button>
+            <button v-on:click="cerrarNuevo" class="px-4 py-2 border rounded">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+        <input v-model="filtro.q" v-on:input="buscarConDemora" type="text"
+               placeholder="Cliente o email..." class="border rounded px-3 py-2" />
+
+        <select v-model="filtro.estado" v-on:change="cargar(1)" class="border rounded px-3 py-2">
+            <option value="">Todos los estados</option>
+            <option>Confirmado</option>
+            <option>Finalizado</option>
+            <option>Cancelado</option>
+            <option>No se presentó</option>
+        </select>
+
+        <input v-model="filtro.desde" v-on:change="cargar(1)" type="date" class="border rounded px-3 py-2" />
+        <input v-model="filtro.hasta" v-on:change="cargar(1)" type="date" class="border rounded px-3 py-2" />
+
+        <div v-if="esAdmin" class="relative">
+            <input v-model="barberoQ" v-on:input="buscarBarberos" type="text"
+                   placeholder="Barbero..." class="border rounded px-3 py-2 w-full" />
+            <ul v-if="barberos.length" class="absolute z-10 bg-white text-black border rounded w-full mt-1 shadow">
+                <li v-for="b in barberos" v-bind:key="b.idUsuario" v-on:click="elegirBarbero(b)"
+                    class="px-3 py-2 hover:bg-gray-100 cursor-pointer">{{ b.nombre }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div v-if="error" class="mb-3 p-3 bg-red-100 text-red-800 rounded">{{ error }}</div>
+    <div v-if="mensaje" class="mb-3 p-3 bg-green-100 text-green-800 rounded">{{ mensaje }}</div>
+
+    <div class="overflow-x-auto border rounded">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700 text-left">
+                <tr>
+                    <th class="p-3">Fecha</th>
+                    <th class="p-3">Hora</th>
+                    <th class="p-3">Barbero</th>
+                    <th class="p-3">Cliente</th>
+                    <th class="p-3">Servicio</th>
+                    <th class="p-3">Precio</th>
+                    <th class="p-3">Seña</th>
+                    <th class="p-3">Estado</th>
+                    <th class="p-3">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-if="cargando"><td colspan="9" class="p-4 text-center">Cargando...</td></tr>
+                <tr v-else-if="!datos.items.length"><td colspan="9" class="p-4 text-center">No hay turnos.</td></tr>
+                <tr v-for="t in datos.items" v-bind:key="t.idTurno" class="border-t">
+                    <td class="p-3">{{ fecha(t.fecha) }}</td>
+                    <td class="p-3">{{ t.horaInicio.slice(0, 5) }}</td>
+                    <td class="p-3">{{ t.barbero }}</td>
+                    <td class="p-3">
+                        <div>{{ t.cliente }}</div>
+                        <div class="text-xs text-gray-500">{{ t.email }} · {{ t.telefono }}</div>
+                    </td>
+                    <td class="p-3">{{ t.servicio }}</td>
+                    <td class="p-3">{{ dinero(t.precioServicio) }}</td>
+                    <td class="p-3">{{ dinero(t.sena) }}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs" v-bind:class="colorEstado(t.estado)">{{ t.estado }}</span>
+                    </td>
+                    <td class="p-3 space-x-2 whitespace-nowrap">
+                        <template v-if="t.estado === 'Confirmado'">
+                            <button v-on:click="cambiarEstado(t, 'Finalizado')" class="text-green-700 hover:underline">Finalizar</button>
+                            <button v-on:click="cambiarEstado(t, 'No se presentó')" class="text-amber-700 hover:underline">No vino</button>
+                            <button v-on:click="cambiarEstado(t, 'Cancelado')" class="text-red-700 hover:underline">Cancelar</button>
+                        </template>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex items-center justify-between mt-4">
+        <span class="text-sm text-gray-600">{{ datos.total }} turnos · Página {{ datos.pagina }} de {{ datos.totalPaginas || 1 }}</span>
+        <div class="space-x-2">
+            <button v-on:click="cargar(datos.pagina - 1)" v-bind:disabled="datos.pagina <= 1"
+                    class="px-3 py-1 border rounded disabled:opacity-40">Anterior</button>
+            <button v-on:click="cargar(datos.pagina + 1)" v-bind:disabled="datos.pagina >= datos.totalPaginas"
+                    class="px-3 py-1 border rounded disabled:opacity-40">Siguiente</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+    <script>
+        window.FIGARO = {
+            token: '@ViewBag.Token',
+            esAdmin: @(ViewBag.EsAdmin ? "true" : "false"),
+            idUsuario: @ViewBag.IdUsuario,
+            nombreUsuario: '@ViewBag.NombreUsuario'
+        };
+    </script>
+    <script src="~/js/turnos.js" asp-append-version="true"></script>
+}

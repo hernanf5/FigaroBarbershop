@@ -232,7 +232,7 @@
             </div>`;
     }
 
-    // ---------- Helpers ----------
+    //Helpers 
     function fechaLinda(f) {
         const [y, m, d] = f.split('-').map(Number);
         return `${d} de ${MESES[m - 1]}`;

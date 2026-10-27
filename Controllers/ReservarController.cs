@@ -12,17 +12,19 @@ namespace FigaroBarbershop.Controllers
         private readonly IRepositorioAgenda repoAgenda;
         private readonly IRepositorioCliente repoCliente;
         private readonly IRepositorioTurno repoTurno;
+        private readonly ServicioDisponibilidad disponibilidad;
         private readonly ILogger<ReservarController> logger;
 
         public ReservarController(IRepositorioUsuario repoUsuario, IRepositorioServicio repoServicio,
             IRepositorioAgenda repoAgenda, IRepositorioCliente repoCliente, IRepositorioTurno repoTurno,
-            ILogger<ReservarController> logger)
+            ServicioDisponibilidad disponibilidad, ILogger<ReservarController> logger)
         {
             this.repoUsuario = repoUsuario;
             this.repoServicio = repoServicio;
             this.repoAgenda = repoAgenda;
             this.repoCliente = repoCliente;
             this.repoTurno = repoTurno;
+            this.disponibilidad = disponibilidad;
             this.logger = logger;
         }
 
@@ -38,31 +40,12 @@ namespace FigaroBarbershop.Controllers
             => Json(repoServicio.ObtenerLista(1, 100)
                 .Select(s => new { s.IdServicio, s.Nombre, s.DuracionMinutos, s.Precio, sena = ConfigTurnos.CalcularSena(s.Precio) }));
 
-
         [HttpGet]
         public IActionResult Horarios(int idBarbero, DateTime fecha, int idServicio)
         {
             var servicio = repoServicio.ObtenerPorId(idServicio);
             if (servicio == null || !servicio.Activo) return NotFound();
-
-            var ahora = DateTime.Now;
-            if (fecha.Date < ahora.Date) return Json(Array.Empty<object>());
-
-            int necesarios = ConfigTurnos.CalcularSlots(servicio.DuracionMinutos);
-            var libres = repoAgenda.ObtenerDisponiblesPorBarberoYFecha(idBarbero, fecha);
-
-            var resultado = new List<object>();
-            for (int i = 0; i + necesarios <= libres.Count; i++)
-            {
-                var bloque = libres.Skip(i).Take(necesarios).ToList();
-                bool contiguo = Enumerable.Range(1, necesarios - 1)
-                    .All(k => bloque[k].HoraInicio == bloque[k - 1].HoraFin);
-                if (!contiguo) continue;
-                if (fecha.Date == ahora.Date && bloque[0].HoraInicio <= ahora.TimeOfDay) continue;
-
-                resultado.Add(new { idAgenda = bloque[0].IdAgenda, hora = bloque[0].HoraInicio.ToString(@"hh\:mm") });
-            }
-            return Json(resultado);
+            return Json(disponibilidad.ObtenerInicios(idBarbero, fecha, servicio));
         }
 
         // Autocompletado por email. Es público, así que NO devuelve el teléfono completo

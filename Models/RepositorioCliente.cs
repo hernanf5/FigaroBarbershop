@@ -10,8 +10,8 @@ namespace FigaroBarbershop.Models
         {
             using var connection = new MySqlConnection(connectionString);
             var sql = $@"INSERT INTO Cliente ({nameof(Cliente.Nombre)}, {nameof(Cliente.Apellido)}, {nameof(Cliente.Email)}, {nameof(Cliente.Telefono)})
-                         VALUES (@{nameof(Cliente.Nombre)}, @{nameof(Cliente.Apellido)}, @{nameof(Cliente.Email)}, @{nameof(Cliente.Telefono)});
-                         SELECT LAST_INSERT_ID();";
+                        VALUES (@{nameof(Cliente.Nombre)}, @{nameof(Cliente.Apellido)}, @{nameof(Cliente.Email)}, @{nameof(Cliente.Telefono)});
+                        SELECT LAST_INSERT_ID();";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@" + nameof(Cliente.Nombre), c.Nombre);
             command.Parameters.AddWithValue("@" + nameof(Cliente.Apellido), c.Apellido);
@@ -30,7 +30,7 @@ namespace FigaroBarbershop.Models
                             {nameof(Cliente.Nombre)} = @{nameof(Cliente.Nombre)},
                             {nameof(Cliente.Apellido)} = @{nameof(Cliente.Apellido)},
                             {nameof(Cliente.Telefono)} = @{nameof(Cliente.Telefono)}
-                         WHERE {nameof(Cliente.IdCliente)} = @{nameof(Cliente.IdCliente)}";
+                        WHERE {nameof(Cliente.IdCliente)} = @{nameof(Cliente.IdCliente)}";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@" + nameof(Cliente.Nombre), c.Nombre);
             command.Parameters.AddWithValue("@" + nameof(Cliente.Apellido), c.Apellido);
@@ -75,6 +75,35 @@ namespace FigaroBarbershop.Models
                 Email = reader.GetString(nameof(Cliente.Email)),
                 Telefono = reader.GetString(nameof(Cliente.Telefono)),
             };
+        }
+
+        public List<Cliente> Buscar(string q, int max = 10)
+        {
+            var lista = new List<Cliente>();
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            var sql = @"SELECT IdCliente, Nombre, Apellido, Email, Telefono
+                        FROM Cliente
+                        WHERE Email LIKE @Q OR Nombre LIKE @Q OR Apellido LIKE @Q
+                        OR CONCAT(Nombre, ' ', Apellido) LIKE @Q
+                        ORDER BY Apellido, Nombre
+                        LIMIT @Max";
+            using var cmd = new MySqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("@Q", $"%{q.Trim()}%");
+            cmd.Parameters.AddWithValue("@Max", max);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                lista.Add(new Cliente
+                {
+                    IdCliente = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Apellido = reader.GetString(2),
+                    Email = reader.GetString(3),
+                    Telefono = reader.GetString(4)
+                });
+            }
+            return lista;
         }
     }
 }

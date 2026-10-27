@@ -18,13 +18,22 @@ namespace FigaroBarbershop.Controllers.Api
     {
         private readonly IRepositorioTurno repositorio;
         private readonly IRepositorioUsuario repoUsuario;
+        private readonly IRepositorioServicio repoServicio;
+        private readonly IRepositorioCliente repoCliente;
+        private readonly IRepositorioAgenda repoAgenda;
+        private readonly ServicioDisponibilidad disponibilidad;
         private readonly ILogger<TurnosApiController> logger;
 
         public TurnosApiController(IRepositorioTurno repositorio, IRepositorioUsuario repoUsuario,
-            ILogger<TurnosApiController> logger)
+            IRepositorioServicio repoServicio, IRepositorioCliente repoCliente, IRepositorioAgenda repoAgenda,
+            ServicioDisponibilidad disponibilidad, ILogger<TurnosApiController> logger)
         {
             this.repositorio = repositorio;
             this.repoUsuario = repoUsuario;
+            this.repoServicio = repoServicio;
+            this.repoCliente = repoCliente;
+            this.repoAgenda = repoAgenda;
+            this.disponibilidad = disponibilidad;
             this.logger = logger;
         }
 
@@ -61,6 +70,66 @@ namespace FigaroBarbershop.Controllers.Api
             return Ok(turno);
         }
 
+        [HttpPost]
+        public IActionResult Crear([FromBody] ReservaRequest req)
+        {
+            try
+            {
+                var servicio = repoServicio.ObtenerPorId(req.IdServicio);
+                if (servicio == null || !servicio.Activo)
+                    return BadRequest(new { error = "Servicio inválido." });
+
+                var slot = repoAgenda.ObtenerPorId(req.IdAgenda);
+                if (slot == null) return BadRequest(new { error = "Horario inválido." });
+                if (!EsAdmin && slot.IdUsuario != IdUsuarioActual) return Forbid();
+                if (slot.Fecha.Date + slot.HoraInicio <= DateTime.Now)
+                    return BadRequest(new { error = "El horario elegido ya pasó." });
+
+                var email = req.Email.Trim();
+                var cliente = repoCliente.ObtenerPorEmail(email);
+                if (cliente == null)
+                {
+                    if (string.IsNullOrWhiteSpace(req.Telefono))
+                        return BadRequest(new { error = "El teléfono es obligatorio para un cliente nuevo." });
+
+                    repoCliente.Alta(new Cliente
+                    {
+                        Nombre = req.Nombre.Trim(),
+                        Apellido = req.Apellido.Trim(),
+                        Email = email,
+                        Telefono = req.Telefono.Trim()
+                    });
+                    cliente = repoCliente.ObtenerPorEmail(email)!;
+                }
+                else
+                {
+                    cliente.Nombre = req.Nombre.Trim();
+                    cliente.Apellido = req.Apellido.Trim();
+                    if (!string.IsNullOrWhiteSpace(req.Telefono)) cliente.Telefono = req.Telefono.Trim();
+                    repoCliente.Modificacion(cliente);
+                }
+
+                var turno = new Turno
+                {
+                    IdAgenda = req.IdAgenda,
+                    IdCliente = cliente.IdCliente,
+                    IdServicio = servicio.IdServicio,
+                    CantidadSlots = ConfigTurnos.CalcularSlots(servicio.DuracionMinutos),
+                    PrecioServicio = servicio.Precio,
+                    Sena = ConfigTurnos.CalcularSena(servicio.Precio)
+                };
+                repositorio.Reservar(turno);
+
+                return CreatedAtAction(nameof(Obtener), new { id = turno.IdTurno }, repositorio.ObtenerDetalle(turno.IdTurno));
+            }
+            catch (InvalidOperationException ex) { return Conflict(new { error = ex.Message }); }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error al crear turno");
+                return StatusCode(500, new { error = "Error interno." });
+            }
+        }
+
         [HttpPut("{id:int}/estado")]
         public IActionResult CambiarEstado(int id, [FromBody] CambiarEstadoRequest req)
         {
@@ -82,7 +151,8 @@ namespace FigaroBarbershop.Controllers.Api
             }
         }
 
-        // Buscador de barberos para el filtro (solo admin)
+        // Auxiliares para el formulario de alta 
+
         [HttpGet("barberos")]
         [Authorize(Roles = "Administrador", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Barberos(string? q)
@@ -94,6 +164,28 @@ namespace FigaroBarbershop.Controllers.Api
                 lista = lista.Where(b => b.nombre.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase));
 
             return Ok(lista.Take(10));
+        }
+
+        [HttpGet("clientes")]
+        public IActionResult Clientes(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2) return Ok(Array.Empty<object>());
+            return Ok(repoCliente.Buscar(q, 8)
+                .Select(c => new { c.IdCliente, c.Nombre, c.Apellido, c.Email, c.Telefono }));
+        }
+
+        [HttpGet("servicios")]
+        public IActionResult Servicios()
+            => Ok(repoServicio.ObtenerLista(1, 100)
+                .Select(s => new { s.IdServicio, s.Nombre, s.DuracionMinutos, s.Precio }));
+
+        [HttpGet("horarios")]
+        public IActionResult Horarios(int idBarbero, DateTime fecha, int idServicio)
+        {
+            if (!EsAdmin) idBarbero = IdUsuarioActual;
+            var servicio = repoServicio.ObtenerPorId(idServicio);
+            if (servicio == null || !servicio.Activo) return NotFound();
+            return Ok(disponibilidad.ObtenerInicios(idBarbero, fecha, servicio));
         }
     }
 }
