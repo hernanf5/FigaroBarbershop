@@ -3,28 +3,31 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FigaroBarbershop</title>
+    <title>@ViewData["Title"] - Figaro Barbershop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/tailwind-output.css" asp-append-version="true" />
 </head>
-<body class="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-    <header class="bg-white border-b shadow-sm">
-        <nav class="max-w-6xl mx-auto px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-            <a class="font-semibold text-lg" asp-area="" asp-controller="Home" asp-action="Index">FigaroBarbershop</a>
+<body class="panel min-h-screen flex flex-col">
+    <header class="border-b">
+        <nav class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+            <a class="panel-logo" asp-area="" asp-controller="Home" asp-action="Index"><span>F</span>igaro</a>
 
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm flex-1">
-                    <a class="hover:underline" asp-controller="Turnos" asp-action="Index">Turnos</a>
-                    <a class="hover:underline" asp-controller="Agenda" asp-action="Index">Agenda</a>
-                    <a class="hover:underline" asp-controller="Servicios" asp-action="Index">Servicios</a>
-                    <a class="hover:underline" asp-controller="Productos" asp-action="Index">Productos</a>
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-2 flex-1">
+                    <a class="panel-link" asp-controller="Turnos" asp-action="Index">Turnos</a>
+                    <a class="panel-link" asp-controller="Agenda" asp-action="Index">Agenda</a>
+                    <a class="panel-link" asp-controller="Servicios" asp-action="Index">Servicios</a>
+                    <a class="panel-link" asp-controller="Productos" asp-action="Index">Productos</a>
                     @if (User.IsInRole("Administrador"))
                     {
-                        <a class="hover:underline" asp-controller="Usuarios" asp-action="Index">Usuarios</a>
+                        <a class="panel-link" asp-controller="Usuarios" asp-action="Index">Usuarios</a>
                     }
                 </div>
 
-                <div class="flex items-center gap-3 text-sm">
+                <div class="flex items-center gap-4">
                     @{
                         var avatar = User.FindFirst("AvatarUrl")?.Value;
                         var nombre = User.FindFirst("NombreCompleto")?.Value ?? User.Identity!.Name;
@@ -33,27 +36,27 @@
                     {
                         <img src="@avatar" alt="" class="w-8 h-8 rounded-full object-cover" />
                     }
-                    <a class="hover:underline" asp-controller="Usuarios" asp-action="Perfil">@nombre</a>
+                    <a class="panel-link" asp-controller="Usuarios" asp-action="Perfil">@nombre</a>
                     <form asp-controller="Usuarios" asp-action="Logout" method="post" class="inline">
-                        <button type="submit" class="text-red-700 hover:underline">Salir</button>
+                        <button type="submit" class="panel-link">Salir</button>
                     </form>
                 </div>
             }
             else
             {
                 <div class="flex-1"></div>
-                <a class="text-sm hover:underline" asp-controller="Usuarios" asp-action="Login">Ingresar</a>
+                <a class="panel-link" asp-controller="Usuarios" asp-action="Login">Ingresar</a>
             }
         </nav>
     </header>
 
-    <main role="main" class="flex-1 max-w-6xl w-full mx-auto px-6 py-6">
+    <main role="main" class="flex-1 max-w-6xl w-full mx-auto px-6 py-8">
         @RenderBody()
     </main>
 
-    <footer class="border-t bg-white text-gray-500 text-sm">
-        <div class="max-w-6xl mx-auto px-6 py-4">
-            &copy; 2026 - FigaroBarbershop
+    <footer class="border-t">
+        <div class="max-w-6xl mx-auto px-6 py-5 panel-muted text-sm">
+            &copy; 2026 Figaro Barbershop
         </div>
     </footer>
 
