@@ -6,8 +6,68 @@ namespace FigaroBarbershop.Models
     {
         public RepositorioTurno(IConfiguration configuration) : base(configuration) { }
 
-        // Reserva N franjas consecutivas a partir de t.IdAgenda y crea el turno.
-        // Lanza InvalidOperationException si alguna ya no está disponible.
+        private static void TomarFranjas(MySqlConnection connection, MySqlTransaction tx, int idAgenda, int cantidadSlots)
+        {
+            var slots = new List<(int Id, TimeSpan Inicio, TimeSpan Fin, string Estado)>();
+
+            var sqlSlots = $@"SELECT a.{nameof(Agenda.IdAgenda)}, a.{nameof(Agenda.HoraInicio)}, a.{nameof(Agenda.HoraFin)}, a.{nameof(Agenda.Estado)}
+                            FROM Agenda a
+                            JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
+                            WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
+                            AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
+                            AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
+                            ORDER BY a.{nameof(Agenda.HoraInicio)}
+                            LIMIT @Cantidad
+                            FOR UPDATE";
+            using (var cmd = new MySqlCommand(sqlSlots, connection, tx))
+            {
+                cmd.Parameters.AddWithValue("@IdAgenda", idAgenda);
+                cmd.Parameters.AddWithValue("@Cantidad", cantidadSlots);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    slots.Add((reader.GetInt32(0), reader.GetTimeSpan(1), reader.GetTimeSpan(2), reader.GetString(3)));
+                }
+            }
+
+            bool disponible = cantidadSlots > 0
+                && slots.Count == cantidadSlots
+                && slots.All(s => s.Estado == "Disponible")
+                && Enumerable.Range(1, slots.Count - 1).All(i => slots[i].Inicio == slots[i - 1].Fin);
+            if (!disponible)
+            {
+                throw new InvalidOperationException("El horario elegido ya no está disponible.");
+            }
+
+            foreach (var s in slots)
+            {
+                var sqlUpd = $"UPDATE Agenda SET {nameof(Agenda.Estado)} = 'Reservado' WHERE {nameof(Agenda.IdAgenda)} = @Id";
+                using var cmdUpd = new MySqlCommand(sqlUpd, connection, tx);
+                cmdUpd.Parameters.AddWithValue("@Id", s.Id);
+                cmdUpd.ExecuteNonQuery();
+            }
+        }
+
+        // Libera las N franjas reservadas que arrancan en idAgenda.
+        private static void LiberarFranjas(MySqlConnection connection, MySqlTransaction tx, int idAgenda, int cantidadSlots)
+        {
+            var sqlLiberar = $@"UPDATE Agenda a
+                                JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
+                                SET a.{nameof(Agenda.Estado)} = 'Disponible'
+                                WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
+                                AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
+                                AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
+                                AND a.{nameof(Agenda.HoraInicio)} < ADDTIME(ini.{nameof(Agenda.HoraInicio)}, SEC_TO_TIME(@Segundos))
+                                AND a.{nameof(Agenda.Estado)} = 'Reservado'";
+            using var cmd = new MySqlCommand(sqlLiberar, connection, tx);
+            cmd.Parameters.AddWithValue("@IdAgenda", idAgenda);
+            cmd.Parameters.AddWithValue("@Segundos", cantidadSlots * ConfigTurnos.MinutosPorSlot * 60);
+            cmd.ExecuteNonQuery();
+        }
+
+        //Operaciones
+
+
         public int Reservar(Turno t)
         {
             using var connection = new MySqlConnection(connectionString);
@@ -15,44 +75,7 @@ namespace FigaroBarbershop.Models
             using var tx = connection.BeginTransaction();
             try
             {
-                var slots = new List<(int Id, TimeSpan Inicio, TimeSpan Fin, string Estado)>();
-
-                var sqlSlots = $@"SELECT a.{nameof(Agenda.IdAgenda)}, a.{nameof(Agenda.HoraInicio)}, a.{nameof(Agenda.HoraFin)}, a.{nameof(Agenda.Estado)}
-                                FROM Agenda a
-                                JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
-                                WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
-                                AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
-                                AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
-                                ORDER BY a.{nameof(Agenda.HoraInicio)}
-                                LIMIT @Cantidad
-                                FOR UPDATE";
-                using (var cmd = new MySqlCommand(sqlSlots, connection, tx))
-                {
-                    cmd.Parameters.AddWithValue("@IdAgenda", t.IdAgenda);
-                    cmd.Parameters.AddWithValue("@Cantidad", t.CantidadSlots);
-                    using var reader = cmd.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        slots.Add((reader.GetInt32(0), reader.GetTimeSpan(1), reader.GetTimeSpan(2), reader.GetString(3)));
-                    }
-                }
-
-                bool disponible = t.CantidadSlots > 0
-                    && slots.Count == t.CantidadSlots
-                    && slots.All(s => s.Estado == "Disponible")
-                    && Enumerable.Range(1, slots.Count - 1).All(i => slots[i].Inicio == slots[i - 1].Fin);
-                if (!disponible)
-                {
-                    throw new InvalidOperationException("El horario elegido ya no está disponible.");
-                }
-
-                foreach (var s in slots)
-                {
-                    var sqlUpd = $"UPDATE Agenda SET {nameof(Agenda.Estado)} = 'Reservado' WHERE {nameof(Agenda.IdAgenda)} = @Id";
-                    using var cmdUpd = new MySqlCommand(sqlUpd, connection, tx);
-                    cmdUpd.Parameters.AddWithValue("@Id", s.Id);
-                    cmdUpd.ExecuteNonQuery();
-                }
+                TomarFranjas(connection, tx, t.IdAgenda, t.CantidadSlots);
 
                 var sqlIns = $@"INSERT INTO Turno ({nameof(Turno.IdAgenda)}, {nameof(Turno.IdCliente)}, {nameof(Turno.IdServicio)}, {nameof(Turno.CantidadSlots)}, {nameof(Turno.PrecioServicio)}, {nameof(Turno.Sena)}, {nameof(Turno.Estado)})
                                 VALUES (@IdAgenda, @IdCliente, @IdServicio, @CantidadSlots, @PrecioServicio, @Sena, @Estado);
@@ -76,7 +99,6 @@ namespace FigaroBarbershop.Models
                 throw;
             }
         }
-
 
         public int CambiarEstado(int idTurno, string nuevoEstado)
         {
@@ -126,18 +148,7 @@ namespace FigaroBarbershop.Models
 
                 if (nuevoEstado == EstadoTurno.Cancelado)
                 {
-                    var sqlLiberar = $@"UPDATE Agenda a
-                                        JOIN Agenda ini ON ini.{nameof(Agenda.IdAgenda)} = @IdAgenda
-                                        SET a.{nameof(Agenda.Estado)} = 'Disponible'
-                                        WHERE a.{nameof(Agenda.IdUsuario)} = ini.{nameof(Agenda.IdUsuario)}
-                                        AND a.{nameof(Agenda.Fecha)} = ini.{nameof(Agenda.Fecha)}
-                                        AND a.{nameof(Agenda.HoraInicio)} >= ini.{nameof(Agenda.HoraInicio)}
-                                        AND a.{nameof(Agenda.HoraInicio)} < ADDTIME(ini.{nameof(Agenda.HoraInicio)}, SEC_TO_TIME(@Segundos))
-                                        AND a.{nameof(Agenda.Estado)} = 'Reservado'";
-                    using var cmdLiberar = new MySqlCommand(sqlLiberar, connection, tx);
-                    cmdLiberar.Parameters.AddWithValue("@IdAgenda", idAgenda);
-                    cmdLiberar.Parameters.AddWithValue("@Segundos", cantidadSlots * ConfigTurnos.MinutosPorSlot * 60);
-                    cmdLiberar.ExecuteNonQuery();
+                    LiberarFranjas(connection, tx, idAgenda, cantidadSlots);
                 }
 
                 tx.Commit();
@@ -149,6 +160,66 @@ namespace FigaroBarbershop.Models
                 throw;
             }
         }
+
+
+        public int Reprogramar(int idTurno, int idAgendaNueva)
+        {
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using var tx = connection.BeginTransaction();
+            try
+            {
+                int idAgendaActual;
+                int cantidadSlots;
+                string estadoActual;
+
+                var sqlLeer = $@"SELECT {nameof(Turno.IdAgenda)}, {nameof(Turno.CantidadSlots)}, {nameof(Turno.Estado)}
+                                FROM Turno WHERE {nameof(Turno.IdTurno)} = @Id FOR UPDATE";
+                using (var cmdLeer = new MySqlCommand(sqlLeer, connection, tx))
+                {
+                    cmdLeer.Parameters.AddWithValue("@Id", idTurno);
+                    using var reader = cmdLeer.ExecuteReader();
+                    if (!reader.Read())
+                    {
+                        tx.Rollback();
+                        return 0;
+                    }
+                    idAgendaActual = reader.GetInt32(0);
+                    cantidadSlots = reader.GetInt32(1);
+                    estadoActual = reader.GetString(2);
+                }
+
+                if (estadoActual != EstadoTurno.Confirmado)
+                {
+                    throw new InvalidOperationException("Solo se puede reprogramar un turno confirmado.");
+                }
+                if (idAgendaActual == idAgendaNueva)
+                {
+                    throw new InvalidOperationException("El turno ya está en ese horario.");
+                }
+
+                LiberarFranjas(connection, tx, idAgendaActual, cantidadSlots);
+                TomarFranjas(connection, tx, idAgendaNueva, cantidadSlots);
+
+                var sqlTurno = $"UPDATE Turno SET {nameof(Turno.IdAgenda)} = @IdAgenda WHERE {nameof(Turno.IdTurno)} = @Id";
+                using (var cmdTurno = new MySqlCommand(sqlTurno, connection, tx))
+                {
+                    cmdTurno.Parameters.AddWithValue("@IdAgenda", idAgendaNueva);
+                    cmdTurno.Parameters.AddWithValue("@Id", idTurno);
+                    cmdTurno.ExecuteNonQuery();
+                }
+
+                tx.Commit();
+                return 1;
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+        }
+
+        // Consultas
 
         private const string SelectListado = @"
             SELECT t.IdTurno, t.CantidadSlots, t.PrecioServicio, t.Sena, t.Estado, t.FechaCreacion,

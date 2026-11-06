@@ -119,7 +119,7 @@ Decisiones de diseño:
 ### 3. Estilos (Tailwind)
 ```bash
 npm install
-npx @tailwindcss/cli -i <entrada.css> -o ./wwwroot/css/tailwind-output.css --watch
+npx @tailwindcss/cli -i ./Styles/tailwind.css -o ./wwwroot/css/tailwind-output.css --watch
 ```
 Las páginas públicas usan `wwwroot/css/figaro.css` (CSS plano) y no pasan por Tailwind.
 

@@ -87,6 +87,37 @@
         </div>
     </div>
 
+    <div v-if="repro.abierto" class="mb-6 border rounded p-4 space-y-4">
+        <h2 class="text-lg font-semibold">Reprogramar turno</h2>
+        <p class="text-sm panel-muted">
+            {{ repro.turno.cliente }} · {{ repro.turno.servicio }} · {{ repro.turno.barbero }} ·
+            actual: {{ fecha(repro.turno.fecha) }} {{ repro.turno.horaInicio.slice(0, 5) }}
+        </p>
+        <div v-if="repro.error" class="p-3 bg-red-100 text-red-800 rounded">{{ repro.error }}</div>
+
+        <div class="max-w-xs">
+            <label class="block text-xs mb-1">Nueva fecha</label>
+            <input v-model="repro.fecha" v-bind:min="hoy" type="date" class="border rounded px-3 py-2 w-full" />
+        </div>
+
+        <div v-if="repro.fecha">
+            <label class="block text-xs mb-1">Nuevo horario</label>
+            <p v-if="repro.horarios === null" class="text-sm text-gray-500">Buscando horarios...</p>
+            <p v-else-if="!repro.horarios.length" class="text-sm text-gray-500">No hay horarios disponibles ese día.</p>
+            <div v-else class="flex flex-wrap gap-2">
+                <button v-for="h in repro.horarios" v-bind:key="h.idAgenda" type="button" v-on:click="repro.idAgenda = h.idAgenda"
+                        class="px-3 py-1 border rounded"
+                        v-bind:class="repro.idAgenda === h.idAgenda ? 'bg-black text-white' : ''">{{ h.hora }}</button>
+            </div>
+        </div>
+
+        <div class="space-x-2">
+            <button v-on:click="guardarReprogramacion" v-bind:disabled="repro.guardando || !repro.idAgenda"
+                    class="px-4 py-2 bg-black text-white rounded disabled:opacity-40">Reprogramar</button>
+            <button v-on:click="cerrarReprogramar" class="px-4 py-2 border rounded">Cancelar</button>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
         <input v-model="filtro.q" v-on:input="buscarConDemora" type="text"
                placeholder="Cliente o email..." class="border rounded px-3 py-2" />
@@ -149,6 +180,7 @@
                     </td>
                     <td class="p-3 space-x-2 whitespace-nowrap">
                         <template v-if="t.estado === 'Confirmado'">
+                            <button v-on:click="abrirReprogramar(t)" class="hover:underline">Reprogramar</button>
                             <button v-on:click="cambiarEstado(t, 'Finalizado')" class="text-green-700 hover:underline">Finalizar</button>
                             <button v-on:click="cambiarEstado(t, 'No se presentó')" class="text-amber-700 hover:underline">No vino</button>
                             <button v-on:click="cambiarEstado(t, 'Cancelado')" class="text-red-700 hover:underline">Cancelar</button>

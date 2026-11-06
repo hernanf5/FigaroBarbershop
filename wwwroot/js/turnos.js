@@ -111,6 +111,7 @@ createApp({
             nuevo.nombre.trim() && nuevo.apellido.trim() && nuevo.telefono.trim());
 
         async function abrirNuevo() {
+            repro.abierto = false;
             Object.assign(nuevo, vacio());
             errorForm.value = '';
             horarios.value = null;
@@ -203,6 +204,55 @@ createApp({
             }
         }
 
+        // ---------- Reprogramar ----------
+        const repro = reactive({
+            abierto: false, turno: null, fecha: '', idAgenda: '', horarios: null, guardando: false, error: ''
+        });
+
+        function abrirReprogramar(turno) {
+            nuevo.abierto = false;
+            mensaje.value = '';
+            Object.assign(repro, {
+                abierto: true, turno, fecha: '', idAgenda: '', horarios: null, guardando: false, error: ''
+            });
+        }
+
+        function cerrarReprogramar() { repro.abierto = false; }
+
+        async function cargarHorariosRepro() {
+            repro.idAgenda = '';
+            repro.horarios = null;
+            if (!repro.fecha || !repro.turno) return;
+            const clave = `${repro.turno.idTurno}|${repro.fecha}`;
+            try {
+                const data = await api(`/api/turnos/${repro.turno.idTurno}/horarios?fecha=${repro.fecha}`);
+                if (repro.turno && clave === `${repro.turno.idTurno}|${repro.fecha}`) repro.horarios = data; // descarta respuestas viejas
+            } catch (e) {
+                repro.horarios = [];
+                repro.error = e.message;
+            }
+        }
+        watch(() => repro.fecha, cargarHorariosRepro);
+
+        async function guardarReprogramacion() {
+            repro.guardando = true;
+            repro.error = '';
+            try {
+                await api(`/api/turnos/${repro.turno.idTurno}/reprogramar`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ idAgenda: Number(repro.idAgenda) })
+                });
+                cerrarReprogramar();
+                mensaje.value = 'Turno reprogramado correctamente.';
+                await cargar(datos.pagina);
+            } catch (e) {
+                repro.error = e.message;
+                cargarHorariosRepro(); // por si el horario se ocupó mientras tanto
+            } finally {
+                repro.guardando = false;
+            }
+        }
+
         // ---------- Helpers ----------
         const fecha = f => { const [y, m, d] = f.slice(0, 10).split('-'); return `${d}/${m}/${y}`; };
         const dinero = n => '$' + Number(n).toLocaleString('es-AR');
@@ -219,7 +269,8 @@ createApp({
             esAdmin, filtro, datos, cargando, error, mensaje, barberoQ, barberos,
             cargar, buscarConDemora, buscarBarberos, elegirBarbero, cambiarEstado, fecha, dinero, colorEstado,
             hoy, nuevo, servicios, clientesSug, barberosForm, horarios, guardando, errorForm, puedeGuardar,
-            abrirNuevo, cerrarNuevo, buscarClientes, elegirCliente, buscarBarberosForm, elegirBarberoForm, guardar
+            abrirNuevo, cerrarNuevo, buscarClientes, elegirCliente, buscarBarberosForm, elegirBarberoForm, guardar,
+            repro, abrirReprogramar, cerrarReprogramar, guardarReprogramacion
         };
     }
 }).mount('#app');

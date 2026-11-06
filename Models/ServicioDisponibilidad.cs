@@ -8,14 +8,17 @@ namespace FigaroBarbershop.Models
 
         public ServicioDisponibilidad(IRepositorioAgenda repoAgenda) => this.repoAgenda = repoAgenda;
 
-        // Horarios de inicio con N franjas consecutivas libres, según la duración del servicio
+        // Según la duración del servicio
         public List<HorarioDisponible> ObtenerInicios(int idBarbero, DateTime fecha, Servicio servicio)
+            => ObtenerInicios(idBarbero, fecha, ConfigTurnos.CalcularSlots(servicio.DuracionMinutos));
+
+        // Horarios de inicio con N franjas consecutivas libres
+        public List<HorarioDisponible> ObtenerInicios(int idBarbero, DateTime fecha, int necesarios)
         {
             var ahora = DateTime.Now;
             var resultado = new List<HorarioDisponible>();
-            if (fecha.Date < ahora.Date) return resultado;
+            if (necesarios < 1 || fecha.Date < ahora.Date) return resultado;
 
-            int necesarios = ConfigTurnos.CalcularSlots(servicio.DuracionMinutos);
             var libres = repoAgenda.ObtenerDisponiblesPorBarberoYFecha(idBarbero, fecha);
 
             for (int i = 0; i + necesarios <= libres.Count; i++)

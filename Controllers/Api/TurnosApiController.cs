@@ -11,6 +11,11 @@ namespace FigaroBarbershop.Controllers.Api
         public string Estado { get; set; } = "";
     }
 
+    public class ReprogramarRequest
+    {
+        public int IdAgenda { get; set; }
+    }
+
     [ApiController]
     [Route("api/turnos")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -147,6 +152,44 @@ namespace FigaroBarbershop.Controllers.Api
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error al cambiar estado del turno {Id}", id);
+                return StatusCode(500, new { error = "Error interno." });
+            }
+        }
+
+        // Horarios disponibles para mover un turno existente (mismo barbero, misma cantidad de franjas)
+        [HttpGet("{id:int}/horarios")]
+        public IActionResult HorariosParaReprogramar(int id, DateTime fecha)
+        {
+            var turno = repositorio.ObtenerDetalle(id);
+            if (turno == null) return NotFound();
+            if (!EsAdmin && turno.IdBarbero != IdUsuarioActual) return Forbid();
+
+            return Ok(disponibilidad.ObtenerInicios(turno.IdBarbero, fecha, turno.CantidadSlots));
+        }
+
+        [HttpPut("{id:int}/reprogramar")]
+        public IActionResult Reprogramar(int id, [FromBody] ReprogramarRequest req)
+        {
+            var turno = repositorio.ObtenerDetalle(id);
+            if (turno == null) return NotFound();
+            if (!EsAdmin && turno.IdBarbero != IdUsuarioActual) return Forbid();
+
+            var slot = repoAgenda.ObtenerPorId(req.IdAgenda);
+            if (slot == null) return BadRequest(new { error = "Horario inválido." });
+            if (slot.IdUsuario != turno.IdBarbero)
+                return BadRequest(new { error = "El nuevo horario debe ser del mismo barbero." });
+            if (slot.Fecha.Date + slot.HoraInicio <= DateTime.Now)
+                return BadRequest(new { error = "El horario elegido ya pasó." });
+
+            try
+            {
+                repositorio.Reprogramar(id, req.IdAgenda);
+                return Ok(repositorio.ObtenerDetalle(id));
+            }
+            catch (InvalidOperationException ex) { return Conflict(new { error = ex.Message }); }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error al reprogramar el turno {Id}", id);
                 return StatusCode(500, new { error = "Error interno." });
             }
         }

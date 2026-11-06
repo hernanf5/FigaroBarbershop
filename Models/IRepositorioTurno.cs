@@ -7,5 +7,7 @@ namespace FigaroBarbershop.Models
         List<TurnoListado> ObtenerLista(TurnoFiltro filtro, int pagina = 1, int tamPagina = 10);
         int ObtenerCantidad(TurnoFiltro filtro);
         TurnoListado? ObtenerDetalle(int idTurno);
+
+        int Reprogramar(int idTurno, int idAgendaNueva);
     }
 }
