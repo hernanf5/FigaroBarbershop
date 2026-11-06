@@ -25,19 +25,31 @@ namespace FigaroBarbershop.Controllers
 
 
         [AllowAnonymous]
-        public IActionResult Login() => View();
+        public IActionResult Login(string? returnUrl = null)
+        {
+            // Si ya está logueado, no tiene sentido mostrar el login
+            if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Turnos");
+
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
 
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginView modelo)
+        public async Task<IActionResult> Login(LoginView modelo, string? returnUrl = null)
         {
-            if (!ModelState.IsValid) return View(modelo);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.ReturnUrl = returnUrl;
+                return View(modelo);
+            }
 
             var usuario = repositorio.ObtenerPorEmail(modelo.Email);
             if (usuario == null || !servicioHash.Verificar(modelo.Clave, usuario.Clave!))
             {
                 ModelState.AddModelError(string.Empty, "Email o contraseña incorrectos.");
+                ViewBag.ReturnUrl = returnUrl;
                 return View(modelo);
             }
 
@@ -52,7 +64,11 @@ namespace FigaroBarbershop.Controllers
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
-            return RedirectToAction("Index", "Home");
+            // Vuelve a la página que quería ver (solo rutas locales, para evitar redirecciones a sitios externos)
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
+
+            return RedirectToAction("Index", "Turnos");
         }
 
         [Authorize]
@@ -134,7 +150,7 @@ namespace FigaroBarbershop.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Perfil(Usuario usuario)
+        public async Task<IActionResult> Perfil(Usuario usuario)
         {
             var id = ObtenerIdUsuarioLogueado();
             if (id != usuario.IdUsuario) return Forbid();
@@ -142,22 +158,40 @@ namespace FigaroBarbershop.Controllers
 
             try
             {
+                // Se parte del usuario real de la base y solo se copian los campos que el perfil puede cambiar.
+                // Así Rol, Activo y Clave no se pueden alterar desde el formulario.
+                var actual = repositorio.ObtenerPorId(id);
+                if (actual == null) return NotFound();
+
+                actual.Nombre = usuario.Nombre;
+                actual.Apellido = usuario.Apellido;
+                actual.Email = usuario.Email;
                 if (usuario.AvatarFile != null)
                 {
-                    usuario.AvatarUrl = GuardarAvatar(usuario.AvatarFile, usuario.IdUsuario);
+                    actual.AvatarUrl = GuardarAvatar(usuario.AvatarFile, actual.IdUsuario);
                 }
-                else
+
+                repositorio.Modificacion(actual);
+
+                // Se renueva la sesión para que el menú muestre el nombre y el avatar nuevos
+                var claims = new List<Claim>
                 {
-                    usuario.AvatarUrl = repositorio.ObtenerPorId(id)?.AvatarUrl;
-                }
-                repositorio.Modificacion(usuario);
+                    new Claim(ClaimTypes.NameIdentifier, actual.IdUsuario.ToString()),
+                    new Claim(ClaimTypes.Name, actual.Email),
+                    new Claim("NombreCompleto", $"{actual.Nombre} {actual.Apellido}"),
+                    new Claim(ClaimTypes.Role, actual.Rol),
+                    new Claim("AvatarUrl", actual.AvatarUrl ?? string.Empty),
+                };
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
                 TempData["Mensaje"] = "Perfil actualizado correctamente.";
                 return RedirectToAction(nameof(Perfil));
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error al actualizar perfil {Id}", id);
-                ModelState.AddModelError(string.Empty, "Ocurrió un error al actualizar el perfil.");
+                ModelState.AddModelError(string.Empty, "Ocurrió un error al actualizar el perfil (¿el email ya está en uso?).");
                 return View(usuario);
             }
         }

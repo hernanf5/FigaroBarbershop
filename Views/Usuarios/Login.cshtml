@@ -19,6 +19,7 @@
         <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mb-4"></div>
 
         <form asp-action="Login" method="post" class="space-y-4">
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
             <div>
                 <label asp-for="Email" class="block text-sm text-gray-600 mb-1"></label>
                 <input asp-for="Email" class="w-full border rounded px-3 py-2" autofocus />
