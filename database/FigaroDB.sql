@@ -97,7 +97,6 @@ INSERT INTO Producto (Nombre, Precio) VALUES
 
 
 -- Usuarios de prueba (requieren que appsettings.json tenga: "Salt": "figaro-2026-barberia")
-INSERT INTO Usuario (Nombre, Apellido, Email, Clave, Rol) VALUES
-    ('Hernán', 'Funes', 'admin@figaro.com', 'vuGuAj9hr0a4ldXxIJmNr7Ygd+Mw2V0dH+HkPIhHqTY=', 'Administrador'),
-    ('Juan', 'Pérez', 'barbero@figaro.com', 'c3B7uDbeJ1WWyrvOdJ8BogtsORlbggM5oInjqIXkgwc=', 'Barbero');
-
+INSERT INTO Usuario (Nombre, Apellido, Email, Clave, Rol, AvatarUrl) VALUES
+    ('Hernán', 'Funes', 'admin@figaro.com', 'vuGuAj9hr0a4ldXxIJmNr7Ygd+Mw2V0dH+HkPIhHqTY=', 'Administrador', NULL),
+    ('Juan', 'Pérez', 'barbero@figaro.com', 'c3B7uDbeJ1WWyrvOdJ8BogtsORlbggM5oInjqIXkgwc=', 'Barbero', '/img/barberos/juan-perez.jpg');
