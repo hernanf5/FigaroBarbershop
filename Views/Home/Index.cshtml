@@ -1,8 +1,148 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using System.Globalization
+@using FigaroBarbershop.Models
+@{
+    Layout = "_LayoutPublico";
+    ViewData["Title"] = "Inicio";
+    var servicios = (IEnumerable<Servicio>)ViewBag.Servicios;
+    var barberos = (IEnumerable<Usuario>)ViewBag.Barberos;
+    var ar = new CultureInfo("es-AR");
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section id="hero">
+    <div class="hero-bg">
+        <div class="ph" style="width:100%;height:100%;"></div>
+    </div>
+    <div class="hero-scroll">Scroll</div>
+    <div class="hero-content">
+        <div class="hero-eyebrow">
+            <span class="label">Barbería · Reservá tu turno online</span>
+        </div>
+        <h1 class="hero-title">
+            El arte<br>del <em>corte</em><br>perfecto.
+        </h1>
+        <div class="hero-sub">
+            <p class="hero-desc">
+                Elegí a tu barbero, el servicio y el horario que más te convenga.
+                Reservá en menos de un minuto.
+            </p>
+            <div class="hero-actions">
+                <a class="btn-primary" href="/Reservar" style="text-decoration:none">Reservar turno</a>
+                <a class="btn-outline" href="#servicios" style="text-decoration:none">Ver servicios</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="servicios">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <div class="label" style="margin-bottom:16px">Nuestros servicios</div>
+                <h2 class="section-title">Lo que<br><em>hacemos</em></h2>
+            </div>
+            <p style="font-size:14px;color:var(--text-dim);max-width:300px;line-height:1.7">
+                Cada servicio está pensado para realzar tu mejor versión. Sin prisa, sin improvisación.
+            </p>
+        </div>
+        <div class="services-grid">
+            @foreach (var s in servicios)
+            {
+                <div class="service-item">
+                    <div>
+                        <div class="service-name">@s.Nombre</div>
+                    </div>
+                    <div class="service-meta">
+                        <span class="service-price">$@s.Precio.ToString("N0", ar)</span>
+                        <span class="service-time">@s.DuracionMinutos min</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section id="equipo">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <div class="label" style="margin-bottom:16px">El equipo</div>
+                <h2 class="section-title">Maestros<br><em>barberos</em></h2>
+            </div>
+            <a class="btn-outline" href="/Reservar" style="text-decoration:none">Reservar con tu favorito</a>
+        </div>
+        <div class="team-grid">
+            @foreach (var b in barberos)
+            {
+                <div class="barber-card">
+                    <div class="barber-photo">
+                        @if (!string.IsNullOrEmpty(b.AvatarUrl))
+                        {
+                            <img src="@b.AvatarUrl" alt="@b.Nombre @b.Apellido" style="width:100%;height:100%;object-fit:cover" />
+                        }
+                        else
+                        {
+                            <div class="ph">@b.Nombre</div>
+                        }
+                    </div>
+                    <div class="barber-info">
+                        <div class="barber-name">@b.Nombre @b.Apellido</div>
+                        <div class="barber-role">Barbero</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section id="ubicacion">
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <div class="label" style="margin-bottom:16px">Dónde encontrarnos</div>
+                <h2 class="section-title">Visítanos<br><em>cuando quieras</em></h2>
+            </div>
+        </div>
+        <div class="location-grid">
+            <div>
+                <div class="map-ph ph">mapa — ubicación</div>
+                <div class="location-detail">
+                    <div class="location-line">
+                        <div class="location-line-icon">⌖</div>
+                        <div class="location-line-text">
+                            <strong>Av. Corrientes 1456, Piso 2</strong>
+                            Buenos Aires, Argentina
+                        </div>
+                    </div>
+                    <div class="location-line">
+                        <div class="location-line-icon">☎</div>
+                        <div class="location-line-text">
+                            <strong>+54 11 4372-0000</strong>
+                            WhatsApp disponible
+                        </div>
+                    </div>
+                    <div class="location-line">
+                        <div class="location-line-icon">@@</div>
+                        <div class="location-line-text">
+                            <strong>hola@@figaro.com.ar</strong>
+                            Respondemos en menos de 1h
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="label" style="margin-bottom:24px">Horarios de atención</div>
+                <table class="hours-table">
+                    <tbody>
+                        <tr><td>Lunes – Sábado</td><td>9:00 – 20:00</td></tr>
+                        <tr><td>Domingos</td><td class="hours-closed">Cerrado</td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:48px">
+                    <a class="btn-primary" href="/Reservar" style="display:block;text-align:center;text-decoration:none;width:100%;padding:20px">
+                        Reservar turno ahora
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -10,15 +10,54 @@
     <link rel="stylesheet" href="~/css/figaro.css" asp-append-version="true" />
 </head>
 <body>
-    <nav>
+    <nav id="nav" class="@(ViewData["NavSolido"] is true ? "scrolled" : "")">
         <a class="nav-logo" href="/"><span>F</span>igaro</a>
-        <div class="nav-links">
-            <a asp-controller="Usuarios" asp-action="Login">Ingresar</a>
-        </div>
+        <ul class="nav-links">
+            <li><a href="/#servicios">Servicios</a></li>
+            <li><a href="/#equipo">Equipo</a></li>
+            <li><a href="/#ubicacion">Ubicación</a></li>
+            <li><a asp-controller="Usuarios" asp-action="Login">Ingresar</a></li>
+        </ul>
+        <a class="nav-cta" href="/Reservar" style="text-decoration:none">Reservar turno</a>
+        <button class="burger" id="burger" type="button" onclick="toggleMenu()" aria-label="Menú">
+            <span></span><span></span><span></span>
+        </button>
     </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/#servicios" onclick="toggleMenu()">Servicios</a>
+        <a href="/#equipo" onclick="toggleMenu()">Equipo</a>
+        <a href="/#ubicacion" onclick="toggleMenu()">Ubicación</a>
+        <a asp-controller="Usuarios" asp-action="Login">Ingresar</a>
+        <div class="mobile-menu-cta">
+            <a class="btn-primary" href="/Reservar" style="text-decoration:none">Reservar turno</a>
+        </div>
+    </div>
 
     @RenderBody()
 
+    <footer>
+        <div class="footer-logo"><span>F</span>igaro</div>
+        <div class="footer-copy">© 2026 Figaro Barbershop. Todos los derechos reservados.</div>
+        <div class="footer-links">
+            <a href="#">Instagram</a>
+            <a href="#">WhatsApp</a>
+            <a href="/Reservar">Reservas</a>
+        </div>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60 || @(ViewData["NavSolido"] is true ? "true" : "false"));
+        });
+        function toggleMenu() {
+            const burger = document.getElementById('burger');
+            const menu = document.getElementById('mobileMenu');
+            const abierto = burger.classList.toggle('open');
+            menu.classList.toggle('open', abierto);
+            document.body.style.overflow = abierto ? 'hidden' : '';
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
